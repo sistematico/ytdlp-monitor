@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downloads em Progresso</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .downloads-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .download-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .download-item.queued {
+            border-left-color: #ffc107;
+        }
+
+        .download-url {
+            font-size: 14px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 5px;
+        }
+
+        .download-status {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .refresh-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📥 Downloads</h1>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="activeCount">-</div>
+                <div class="stat-label">Ativos</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="queuedCount">-</div>
+                <div class="stat-label">Na Fila</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalCount">-</div>
+                <div class="stat-label">Total</div>
+            </div>
+        </div>
+
+        <div class="downloads-list" id="downloadsList">
+            <div class="empty-state">
+                <div class="empty-icon">⏳</div>
+                <div>Carregando...</div>
+            </div>
+        </div>
+
+        <button class="refresh-btn" id="btnRefresh">🔄 Atualizar</button>
+    </div>
+
+    <script>
+        (async function() {
+            // Aguardar Tauri
+            async function waitForTauri() {
+                let attempts = 0;
+                while (!window.__TAURI__ && attempts < 100) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                return window.__TAURI__;
+            }
+            
+            const tauri = await waitForTauri();
+            
+            if (!tauri) {
+                document.getElementById('downloadsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <div>Erro ao carregar Tauri</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const { invoke } = tauri.core;
+            
+            async function loadStatus() {
+                try {
+                    const status = await invoke('get_download_status');
+                    
+                    document.getElementById('activeCount').textContent = status.active;
+                    document.getElementById('queuedCount').textContent = status.queued;
+                    document.getElementById('totalCount').textContent = status.active + status.queued;
+
+                    const listEl = document.getElementById('downloadsList');
+                    
+                    if (status.downloads.length === 0) {
+                        listEl.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-icon">📭</div>
+                                <div>Nenhum download em andamento</div>
+                            </div>
+                        `;
+                    } else {
+                        listEl.innerHTML = status.downloads.map(d => {
+                            const escapedUrl = d.url.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            return `
+                                <div class="download-item ${d.status === 'queued' ? 'queued' : ''}">
+                                    <div class="download-url">${escapedUrl}</div>
+                                    <div class="download-status">${d.status === 'active' ? '⬇️ Baixando...' : '⏳ Na fila'}</div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar status:', e);
+                }
+            }
+            
+            // Carregar inicialmente
+            await loadStatus();
+            
+            // Atualizar a cada 2 segundos
+            setInterval(loadStatus, 2000);
+            
+            // Botão refresh
+            document.getElementById('btnRefresh').addEventListener('click', loadStatus);
+        })();
+    </script>
+</body>
+</html>

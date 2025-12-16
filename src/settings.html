@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .setting-group {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .setting-group:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-save:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-cancel {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ Configurações</h1>
+
+        <div class="setting-group">
+            <div class="section-title">📁 Download</div>
+            
+            <label for="downloadPath">Pasta de Destino</label>
+            <input type="text" id="downloadPath" placeholder="C:\Users\Lucas\Desktop" value="C:\Users\Lucas\Desktop">
+            <div class="help-text">Pasta onde os vídeos serão salvos</div>
+        </div>
+
+        <div class="setting-group">
+            <div class="section-title">📝 Arquivo</div>
+            
+            <label for="filenameTemplate">Modelo de Nome do Arquivo</label>
+            <input type="text" id="filenameTemplate" placeholder="%(title)s.%(ext)s" value="%(title)s.%(ext)s">
+            <div class="help-text">Use: %(title)s para título, %(uploader)s para autor, %(id)s para ID</div>
+        </div>
+
+        <div class="setting-group">
+            <div class="section-title">⚡ Desempenho</div>
+            
+            <label for="maxConcurrent">Downloads Simultâneos</label>
+            <input type="number" id="maxConcurrent" min="1" max="10" value="3">
+            <div class="help-text">Máximo: 10 downloads ao mesmo tempo</div>
+        </div>
+
+        <div class="setting-group">
+            <div class="section-title">🔔 Notificações</div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="enableNotifications" checked>
+                <label for="enableNotifications">Habilitar Notificações</label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="enableSound" checked>
+                <label for="enableSound">Som ao Completar</label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="section-title">🛡️ Duplicatas</div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="checkDuplicates" checked>
+                <label for="checkDuplicates">Evitar Downloads Duplicados</label>
+            </div>
+            <div class="help-text">Mantém histórico de downloads para evitar repetições</div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-cancel" id="btnCancel">Cancelar</button>
+            <button class="btn-save" id="btnSave">💾 Salvar</button>
+        </div>
+    </div>
+
+    <script>
+        (async function() {
+            const btnSave = document.getElementById('btnSave');
+            const btnCancel = document.getElementById('btnCancel');
+            
+            // Desabilitar botões até Tauri carregar
+            btnSave.disabled = true;
+            btnCancel.disabled = true;
+            
+            // Função para aguardar Tauri
+            async function waitForTauri() {
+                let attempts = 0;
+                while (!window.__TAURI__ && attempts < 100) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                return window.__TAURI__;
+            }
+            
+            const tauri = await waitForTauri();
+            
+            if (!tauri) {
+                alert('Erro: Tauri não carregou. Feche e abra a janela novamente.');
+                return;
+            }
+            
+            const { invoke } = tauri.core;
+            const { getCurrent } = tauri.webviewWindow;
+            
+            // Habilitar botões
+            btnSave.disabled = false;
+            btnCancel.disabled = false;
+            
+            // Carregar configurações
+            try {
+                const settings = await invoke('get_settings');
+                document.getElementById('downloadPath').value = settings.download_path;
+                document.getElementById('filenameTemplate').value = settings.filename_template;
+                document.getElementById('maxConcurrent').value = settings.max_concurrent;
+                document.getElementById('enableNotifications').checked = settings.enable_notifications;
+                document.getElementById('enableSound').checked = settings.enable_sound;
+                document.getElementById('checkDuplicates').checked = settings.check_duplicates;
+            } catch (e) {
+                console.error('Erro ao carregar:', e);
+            }
+            
+            // Botão Salvar
+            btnSave.addEventListener('click', async () => {
+                try {
+                    btnSave.disabled = true;
+                    
+                    const settings = {
+                        download_path: document.getElementById('downloadPath').value,
+                        filename_template: document.getElementById('filenameTemplate').value,
+                        max_concurrent: parseInt(document.getElementById('maxConcurrent').value),
+                        enable_notifications: document.getElementById('enableNotifications').checked,
+                        enable_sound: document.getElementById('enableSound').checked,
+                        check_duplicates: document.getElementById('checkDuplicates').checked,
+                    };
+
+                    await invoke('save_settings', { settings });
+                    
+                    const currentWindow = getCurrent();
+                    await currentWindow.close();
+                } catch (e) {
+                    alert('Erro ao salvar: ' + e);
+                    btnSave.disabled = false;
+                }
+            });
+            
+            // Botão Cancelar
+            btnCancel.addEventListener('click', async () => {
+                try {
+                    const currentWindow = getCurrent();
+                    await currentWindow.close();
+                } catch (e) {
+                    console.error('Erro ao fechar:', e);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
